@@ -8,8 +8,6 @@ explorar tratamento de erros
 
 ver documentação / boas práticas
 
-explorar métodos async
-
 
 ---
 SQSQueueProducer
@@ -27,23 +25,14 @@ SQSQueueProducer
         send(int messageAmount)
             loop messageAmount
                 gerar timestamp + data e hora dd/mm/yyyy hh:nn:ss:ms + contador
-             
-                log payload a enviar
-                
-                guardar timestamp inicio envio
-                
-                sqsService.send({json do conteudo acima}, queueURL)
-                
-                guardar timestamp fim envio
                 
                 se falhar disparar exception e interromper
                 
-                gravar em tabela
-                    id auto inc
-                    timestamp inicio envio
-                    timestamp fim envio
-                    tempo envio (dif timestamps)
-                    payload json
+>>              gravar em tabela 
+
+                    >>>> ver o que falta config, está gerando erro 
+                        - tipo do campo auto inc ? ver projeto beerstore / doc h2 sobre tipo de incremento
+                        - estrutura / tipos dos campos ?
                     
             return nome da fila e status 200
         

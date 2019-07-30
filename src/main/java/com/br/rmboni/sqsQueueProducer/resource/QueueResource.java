@@ -1,12 +1,13 @@
 package com.br.rmboni.sqsQueueProducer.resource;
 
+import com.br.rmboni.sqsQueueProducer.domain.SendMessageRequest;
 import com.br.rmboni.sqsQueueProducer.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.constraints.NotNull;
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/queue")
@@ -33,8 +34,8 @@ public class QueueResource {
 	}
 	
 	@PostMapping("/send")
-	public ResponseEntity sendMessages(@NotNull @RequestBody final int amount) {
-		if (messageService.send(amount)) {
+	public ResponseEntity sendMessages(@Valid @RequestBody final SendMessageRequest messageRequest) {
+		if (messageService.send(messageRequest.getAmount())) {
 			return ResponseEntity.ok().build();
 		}
 		
