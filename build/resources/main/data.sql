@@ -1,8 +1,0 @@
-DROP TABLE IF EXISTS sentMessages;
-
-CREATE TABLE SentMessage (
-  id BIGINT AUTO_INCREMENT  PRIMARY KEY,
-  message VARCHAR(500) NOT NULL,
-  sendTime DOUBLE
-);
-

@@ -2,10 +2,7 @@ package com.br.rmboni.sqsQueueProducer.service;
 
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
-import com.amazonaws.services.sqs.model.DeleteQueueResult;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.amazonaws.services.sqs.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,9 +20,9 @@ public class SQSService<T> {
 	
 	private final ObjectMapper objectMapper = new ObjectMapper();
 	
-	public String createQueue() throws Exception {
+	public String createQueue() {
 		final Map<String, String> queueAttributes = new HashMap<>();
-		// TODO DEFINIR PARAMETROS DA FILA
+		queueAttributes.put("ReceiveMessageWaitTimeSeconds", "10");
 		
 		CreateQueueResult queue = sqs.createQueue(new CreateQueueRequest()
 				.withQueueName(sqsQueueName)
@@ -34,20 +31,26 @@ public class SQSService<T> {
 		return queue.getQueueUrl();
 	}
 	
-	public void removeQueue(final String queueURL) throws Exception {
+	public void removeQueue(final String queueURL) {
 		DeleteQueueResult deleteQueueResult = sqs.deleteQueue(queueURL);
 	}
 	
-	public void sendMessage(final String message, final String queueURL) throws Exception {
-		sqs.sendMessage(new SendMessageRequest(queueURL, message));
+	public SendMessageResult sendMessage(final String message, final String queueURL) {
+		return sqs.sendMessage(new SendMessageRequest(queueURL, message));
 	}
 	
-	public void sendMessage(final T messageBean, final String queueURL) throws Exception {
+	public SendMessageResult sendMessage(final T messageBean, final String queueURL) {
 		String serializedMessage = getString(messageBean);
-		sendMessage(serializedMessage, queueURL);
+		return sendMessage(serializedMessage, queueURL);
 	}
 	
-	public String getString(T messageBean) throws JsonProcessingException {
-		return objectMapper.writeValueAsString(messageBean);
+	public String getString(T messageBean) {
+		try {
+			return objectMapper.writeValueAsString(messageBean);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+		
+		return "";
 	}
 }

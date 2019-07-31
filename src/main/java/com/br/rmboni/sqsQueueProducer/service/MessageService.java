@@ -1,8 +1,10 @@
 package com.br.rmboni.sqsQueueProducer.service;
 
+import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.br.rmboni.sqsQueueProducer.domain.SQSMessage;
-import com.br.rmboni.sqsQueueProducer.persistence.model.SentMessage;
-import com.br.rmboni.sqsQueueProducer.repository.SentMessagesRepository;
+import com.br.rmboni.sqsQueueProducer.domain.SendMessageResponse;
+import com.br.rmboni.sqsQueueProducer.domain.SentMessage;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,65 +12,50 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 
 @Service
 public class MessageService {
 	@Autowired
 	private SQSService<SQSMessage> sqsService;
 	
-	@Autowired
-	private SentMessagesRepository sentMessagesRepository;
-	
 	private String queueURL;
 	
 	private final Logger logger = LoggerFactory.getLogger(MessageService.class);
 	
-	public boolean createQueue() {
-		try {
-			queueURL = sqsService.createQueue();
-			logger.info("Fila criada {}", queueURL);
-			return true;
-		} catch (Exception e) {
-			logger.error("Erro ao criar fila", e);
+	public void createQueue() {
+		if (queueURL != null) {
+			return;
 		}
 		
-		return false;
+		queueURL = sqsService.createQueue();
+		logger.info("Fila criada {}", queueURL);
 	}
 	
-	public boolean removeQueue() {
-		try {
-			sqsService.removeQueue(queueURL);
-			logger.info("Fila excluida {}", queueURL);
-			return true;
-		} catch (Exception e) {
-			logger.error("Erro ao excluir fila", e);
-		}
-		
-		return false;
+	public void removeQueue() {
+		sqsService.removeQueue(queueURL);
+		logger.info("Fila excluida {}", queueURL);
 	}
 	
-	public boolean send(int amount) {
-		try {
-			for (int i=0; i < amount; i++) {
-				SQSMessage messageBean = new SQSMessage(LocalDateTime.now().toString(), LocalDateTime.now(), i);
-				final LocalDateTime start = LocalDateTime.now();
-				sqsService.sendMessage(messageBean, queueURL);
-				final LocalDateTime finish = LocalDateTime.now();
-				
-				SentMessage sentMessage = new SentMessage();
-				sentMessage.setMessage(sqsService.getString(messageBean));
-				sentMessage.setTimestamp(start);
-				sentMessage.setTimeToSend(Double.valueOf(Duration.between(start, finish).toMillis()));
-				sentMessagesRepository.save(sentMessage);
-				
-				logger.info("Mensagem enviada {}, start {}, finish {}, duration {}", messageBean, start, finish, Duration.between(start, finish).toMillis());
-			}
+	public SendMessageResponse send(int amount) {
+		ArrayList<SentMessage> sentMessages = new ArrayList<>();
+		for (int i = 0; i < amount; i++) {
+			SQSMessage messageBean = new SQSMessage(RandomStringUtils.randomAlphanumeric(10), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now()), i);
+			final LocalDateTime start = LocalDateTime.now();
+			SendMessageResult sendMessageResult = sqsService.sendMessage(messageBean, queueURL);
+			final LocalDateTime finish = LocalDateTime.now();
 			
-			return true;
-		} catch(Exception e) {
-			logger.error("Erro ao enviar msg", e);
+			SentMessage sentMessage = new SentMessage();
+			sentMessage.setMessage(sqsService.getString(messageBean).length() > 255 ? sqsService.getString(messageBean).substring(0, 254) : sqsService.getString(messageBean));
+			sentMessage.setMessageId(sendMessageResult.getMessageId());
+			sentMessage.setTimestamp(start);
+			sentMessage.setMillesSecondToSend(Double.valueOf(Duration.between(start, finish).toMillis()));
+			
+			sentMessages.add(sentMessage);
+			logger.info("Mensagem enviada {}, start {}, finish {}, duration {}", messageBean, start, finish, Duration.between(start, finish).toMillis());
 		}
 		
-		return false;
+		return new SendMessageResponse(sentMessages);
 	}
 }
